@@ -1,0 +1,37 @@
+/** @mainpage
+
+This suite exercises tsf-shell - terminal-emulator sessions from the
+Test Agent it runs on - against a terminal-emulator backend
+(libghostty-vt, or libvterm), on deterministic output the suite produces
+on the agent itself:
+
+- @ref shell-render - a shell prints a known screen with escape
+  sequences; the rendered text is read back and asserted row by row;
+- @ref shell-cursor - a cursor-positioning sequence puts the cursor
+  where the test said, and tsf-shell reports that cell;
+- @ref shell-attrs - SGR colour and attribute sequences produce cells
+  whose palette index, foreground/background and bold/underline/reverse
+  flags are what was set;
+- @ref shell-expect - an interactive shell is driven: input is typed in,
+  the echo is waited for on the output stream (classic expect) and the
+  same text is found on the rendered screen with its cell coordinates;
+- @ref shell-resize - resizing the session reaches the child (its
+  @c stty @c size changes) and the emulator's own screen size follows;
+- @ref shell-wait - a spawned program's exit code and signal are
+  reported back;
+- @ref shell-conformance - a fixed escape script is fed in and the whole
+  rendered grid is compared to a golden expectation - a programmatic
+  vttest, with the emulator as the thing under test.
+
+There is no mock and no network: the emulator is a library linked into
+the agent's RPC server and driven in-process, so every byte is rendered
+locally and deterministically. A backend is required; a test skips
+(`tapi_shell_available()`) when none is linked in. Numeric results
+(characters painted per row, colour channels per cell, round-trip
+latency, screen size across a resize, exit codes, cells matching the
+golden) are emitted as MI measurement artifacts, so the HTML log and
+Bublik draw them as graphs. The point of the suite is that tsf-shell
+drives a real TTY and reads a real terminal screen back as structured
+data.
+
+*/

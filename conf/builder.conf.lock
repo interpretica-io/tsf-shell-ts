@@ -1,0 +1,9 @@
+# External repositories pinned by the Test Environment Builder.
+# Commit this file: it makes the build reproducible.
+# Run dispatcher.sh --update-external to move the records on.
+#
+# Empty of records on purpose: tsf-shell is not published yet, so there
+# is no commit to pin. The first build resolves tsf_shell from the ref in
+# conf/external.yml and writes its line here.
+# Copyright (C) 2026 Interpretica Unipessoal Lda
+# SPDX-License-Identifier: MIT

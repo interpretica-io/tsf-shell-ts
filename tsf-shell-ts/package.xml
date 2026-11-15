@@ -1,0 +1,66 @@
+<?xml version="1.0" ?>
+<package version="1.0">
+    <description>tsf-shell demonstration suite</description>
+
+    <!-- @page shell-ts Terminal Emulator Suite
+          @objective Exercise tsf-shell against a terminal-emulator
+                     backend on the agent the suite runs on, using
+                     deterministic, agent-local terminal output.
+
+          @par Test Groups:
+          - @ref shell-render - Paint a known screen, read the text back
+          - @ref shell-cursor - Cursor positioning is reported correctly
+          - @ref shell-attrs - Colours and attributes of cells (SGR)
+          - @ref shell-expect - Interactive expect on the stream and screen
+          - @ref shell-resize - Resize reaches the child (stty size) and the screen
+          - @ref shell-wait - A spawned program's exit status
+          - @ref shell-conformance - A fixed escape script rendered to a golden grid
+
+          @par Notes:
+          - The emulator runs on the agent, in its RPC server, linked not
+            spawned. Every oracle is agent-local: a shell printing fixed
+            escape sequences, or reading and echoing.
+          - A backend is required (libghostty-vt or libvterm); a test
+            skips when none is linked in, rather than failing. The Docker
+            image installs libvterm.
+          - On the localhost configuration the agent is the build
+            container. Name a host in conf/rcf.conf and the same tests
+            run against that host.
+    -->
+
+    <author mailto="maxim.menshikov@interpretica.io" />
+
+    <session track_conf="silent">
+        <!-- @page shell-ts-prologue Test Suite Prologue
+              @objective Prepare the test environment.
+
+              @par Scenario:
+              -# Nothing to do: each test opens its own session and spawns
+                 its own program.
+        -->
+        <prologue>
+            <script name="prologue">
+                <objective>
+                    Prepare the test environment.
+                    @md
+                </objective>
+            </script>
+        </prologue>
+
+        <!-- @page shell-ts-epilogue Test Suite Epilogue
+              @objective Finalize the test environment.
+        -->
+        <epilogue>
+            <script name="epilogue">
+                <objective>
+                    Finalize the test environment.
+                    @md
+                </objective>
+            </script>
+        </epilogue>
+
+        <run>
+            <package name="shell" />
+        </run>
+    </session>
+</package>

@@ -1,0 +1,8 @@
+repositories:
+  - name: tsf_shell
+    url: https://github.com/interpretica-io/tsf-shell.git
+    ref: main
+    libs:
+      - ta_shell
+      - rpcs_shell
+      - tapi_shell

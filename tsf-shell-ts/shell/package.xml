@@ -1,0 +1,32 @@
+<?xml version="1.0" ?>
+<package version="1.0">
+    <description>Terminal emulator</description>
+    <author mailto="maxim.menshikov@interpretica.io" />
+    <session track_conf="silent">
+        <prologue><script name="prologue"><objective>Prepare the shell group.</objective></script></prologue>
+        <epilogue><script name="epilogue"><objective>Finalize the shell group.</objective></script></epilogue>
+        <run><script name="render"><objective>Paint a known screen and read the text back.</objective></script></run>
+        <run><script name="cursor"><objective>Cursor positioning is reported correctly.</objective></script></run>
+        <run><script name="attrs"><objective>Cell colours and attributes from SGR sequences.</objective></script></run>
+        <run><script name="expect"><objective>Interactive expect on the stream and the screen.</objective></script></run>
+        <run><script name="resize"><objective>Resize reaches the child (stty size) and the screen.</objective></script></run>
+        <run><script name="wait"><objective>A spawned program's exit status.</objective></script></run>
+        <run><script name="conformance"><objective>A fixed escape script rendered to a golden grid.</objective></script></run>
+        <run><script name="erase"><objective>Erase-in-line and erase-in-display clear named cells.</objective></script></run>
+        <run><script name="scroll"><objective>A scrolling region (DECSTBM) confines scrolling.</objective></script></run>
+        <run><script name="edit"><objective>Insert/delete-character rearrange a row.</objective></script></run>
+        <run><script name="tabs"><objective>Default and custom horizontal tab stops.</objective></script></run>
+        <run><script name="wrap"><objective>Autowrap carries text onto the next row.</objective></script></run>
+        <run><script name="altscreen"><objective>The alternate screen buffer swaps out and back.</objective></script></run>
+        <run><script name="unicode"><objective>UTF-8 decoding and wide-glyph handling.</objective></script></run>
+        <run><script name="savecursor"><objective>Save-cursor and restore-cursor (DECSC/DECRC).</objective></script></run>
+        <run><script name="color"><objective>24-bit direct colour and 256-colour palette index.</objective></script></run>
+        <run><script name="cursorvis"><objective>Cursor-visibility mode (DECTCEM) is tracked.</objective></script></run>
+        <run><script name="keys"><objective>Symbolic keys become the right byte sequences.</objective></script></run>
+        <run><script name="signals"><objective>Control keys are turned into signals.</objective></script></run>
+        <run><script name="scrollback"><objective>Lines scrolled off the top are kept.</objective></script></run>
+        <run><script name="rowattrs"><objective>Per-cell attribute records for a whole row.</objective></script></run>
+        <run><script name="regex"><objective>Regex expect matches, and absent patterns time out.</objective></script></run>
+        <run><script name="multisession"><objective>Concurrent sessions stay isolated.</objective></script></run>
+    </session>
+</package>
