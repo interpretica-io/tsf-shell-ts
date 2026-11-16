@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: MIT */
+/* Copyright (C) 2026 Interpretica Unipessoal Lda */
 /** @file
  * @brief Shell Group
  *
@@ -6,8 +8,6 @@
  * 24-row screen; an early line is then found in scrollback and absent
  * from the visible screen, while the last line is on the screen and not
  * in scrollback.
- *
- * Copyright (C) 2026 Interpretica Unipessoal Lda
  */
 
 #define TE_TEST_NAME    "shell/scrollback"
@@ -29,6 +29,7 @@ int
 main(int argc, char **argv)
 {
     tsapi_shell_sess   sess;
+    const char        *backend;
     tapi_shell_session sh;
     te_mi_logger      *logger = NULL;
     te_string          sb = TE_STRING_INIT;
@@ -40,11 +41,12 @@ main(int argc, char **argv)
     const char        *p;
 
     TEST_START;
+    TEST_GET_STRING_PARAM(backend);
 
-    TEST_STEP("Open a session; skip when no backend");
+    TEST_STEP("Open a session; skip when the agent lacks the backend");
     CHECK_RC(tsapi_shell_sess_init(&sess, "pco_shell_scrollback"));
-    if (!tapi_shell_available(sess.pco))
-        TEST_SKIP("The agent has no terminal-emulator backend");
+    if (!tsapi_shell_sess_select(&sess, backend))
+        TEST_SKIP("The agent does not have this terminal-emulator backend");
 
     TEST_STEP("Print a hundred numbered lines on a 24-row screen");
     CHECK_RC(tsapi_shell_open_sh(&sess, SB_SCRIPT, 80, 24, &sh));

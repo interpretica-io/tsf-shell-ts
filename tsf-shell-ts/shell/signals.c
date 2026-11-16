@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: MIT */
+/* Copyright (C) 2026 Interpretica Unipessoal Lda */
 /** @file
  * @brief Shell Group
  *
@@ -6,8 +8,6 @@
  * foreground program, Ctrl-backslash quits it. A reader is started, its
  * readiness confirmed, the control key sent, and the terminating signal
  * read back from the child's exit status.
- *
- * Copyright (C) 2026 Interpretica Unipessoal Lda
  */
 
 #define TE_TEST_NAME    "shell/signals"
@@ -30,6 +30,7 @@ int
 main(int argc, char **argv)
 {
     tsapi_shell_sess sess;
+    const char        *backend;
     te_mi_logger    *logger = NULL;
     unsigned int     i;
     static const struct {
@@ -42,11 +43,12 @@ main(int argc, char **argv)
     };
 
     TEST_START;
+    TEST_GET_STRING_PARAM(backend);
 
-    TEST_STEP("Open a session; skip when no backend");
+    TEST_STEP("Open a session; skip when the agent lacks the backend");
     CHECK_RC(tsapi_shell_sess_init(&sess, "pco_shell_signals"));
-    if (!tapi_shell_available(sess.pco))
-        TEST_SKIP("The agent has no terminal-emulator backend");
+    if (!tsapi_shell_sess_select(&sess, backend))
+        TEST_SKIP("The agent does not have this terminal-emulator backend");
 
     CHECK_RC(te_mi_logger_meas_create("tsf-shell", &logger));
 
@@ -58,10 +60,25 @@ main(int argc, char **argv)
 
         CHECK_RC(tsapi_shell_open_sh(&sess, CAT_SCRIPT, 80, 24, &sh));
 
-        /* Confirm the reader is up (it echoes a typed line). */
+        /*
+         * Confirm the reader is up before the control key: a typed line
+         * comes back twice, once as the terminal's echo and once from
+         * cat. The echo alone is not enough - the terminal echoes before
+         * the shell has even turned into cat, and a control key sent then
+         * signals the shell instead.
+         */
         CHECK_RC(tapi_shell_send(&sh, "ping"));
         CHECK_RC(tapi_shell_send_key(&sh, TAPI_SHELL_KEY_ENTER, 0));
-        rc = tapi_shell_expect_str(&sh, "ping", 5000);
+        {
+            tapi_shell_expect_opts eo = { .regex = true,
+                                          .where = TAPI_SHELL_WHERE_STREAM,
+                                          .timeout_ms = 5000 };
+            tapi_shell_match       m;
+
+            memset(&m, 0, sizeof(m));
+            rc = tapi_shell_expect(&sh, "ping[\r\n]+ping", &eo, &m);
+            tapi_shell_match_free(&m);
+        }
         if (rc != 0)
         {
             tapi_shell_close(&sh);

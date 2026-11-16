@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: MIT */
+/* Copyright (C) 2026 Interpretica Unipessoal Lda */
 /** @file
  * @brief Shell Group
  *
@@ -6,8 +8,6 @@
  * programmatic vttest. Each expected cell names its code point and,
  * where it matters, its foreground palette index and a required
  * attribute flag; every cell must match.
- *
- * Copyright (C) 2026 Interpretica Unipessoal Lda
  */
 
 #define TE_TEST_NAME    "shell/conformance"
@@ -37,6 +37,7 @@ int
 main(int argc, char **argv)
 {
     tsapi_shell_sess   sess;
+    const char        *backend;
     tapi_shell_session sh;
     tapi_shell_status  status;
     te_mi_logger      *logger = NULL;
@@ -60,11 +61,12 @@ main(int argc, char **argv)
     };
 
     TEST_START;
+    TEST_GET_STRING_PARAM(backend);
 
-    TEST_STEP("Open a session; skip when no backend");
+    TEST_STEP("Open a session; skip when the agent lacks the backend");
     CHECK_RC(tsapi_shell_sess_init(&sess, "pco_shell_conf"));
-    if (!tapi_shell_available(sess.pco))
-        TEST_SKIP("The agent has no terminal-emulator backend");
+    if (!tsapi_shell_sess_select(&sess, backend))
+        TEST_SKIP("The agent does not have this terminal-emulator backend");
 
     TEST_STEP("Feed the fixed escape script and let it render");
     CHECK_RC(tsapi_shell_open_sh(&sess, CONF_SCRIPT, 80, 24, &sh));

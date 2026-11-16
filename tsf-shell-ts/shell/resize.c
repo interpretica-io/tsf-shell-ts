@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: MIT */
+/* Copyright (C) 2026 Interpretica Unipessoal Lda */
 /** @file
  * @brief Shell Group
  *
@@ -6,8 +8,6 @@
  * and the emulator's own screen size follows. A shell loop prints
  * @c stty @c size each time it is prodded, once before and once after
  * the resize.
- *
- * Copyright (C) 2026 Interpretica Unipessoal Lda
  */
 
 #define TE_TEST_NAME    "shell/resize"
@@ -28,17 +28,19 @@ int
 main(int argc, char **argv)
 {
     tsapi_shell_sess    sess;
+    const char        *backend;
     tapi_shell_session  sh;
     te_mi_logger       *logger = NULL;
     tapi_shell_screen_t screen;
     bool                opened = false;
 
     TEST_START;
+    TEST_GET_STRING_PARAM(backend);
 
-    TEST_STEP("Open a session; skip when no backend");
+    TEST_STEP("Open a session; skip when the agent lacks the backend");
     CHECK_RC(tsapi_shell_sess_init(&sess, "pco_shell_resize"));
-    if (!tapi_shell_available(sess.pco))
-        TEST_SKIP("The agent has no terminal-emulator backend");
+    if (!tsapi_shell_sess_select(&sess, backend))
+        TEST_SKIP("The agent does not have this terminal-emulator backend");
 
     TEST_STEP("Spawn a shell that reports its tty size on demand, 80x24");
     CHECK_RC(tsapi_shell_open_sh(&sess, STTY_SCRIPT, 80, 24, &sh));

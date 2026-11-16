@@ -2,9 +2,9 @@
 tests = [ 'prologue', 'epilogue',
           'render', 'cursor', 'attrs', 'expect', 'resize', 'wait',
           'conformance',
-          'erase', 'scroll', 'edit', 'tabs', 'wrap', 'altscreen', 'unicode',
+          'erase', 'scroll', 'edit', 'tabs', 'wrap', 'cbtwrap', 'altscreen', 'unicode',
           'savecursor', 'color', 'cursorvis', 'keys', 'signals', 'scrollback',
-          'rowattrs', 'regex', 'multisession' ]
+          'rowattrs', 'regex', 'multisession', 'chunking', 'snapshot', 'deepscroll' ]
 foreach test : tests
     test_exe = test
     test_c = test + '.c'

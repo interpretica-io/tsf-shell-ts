@@ -1,6 +1,9 @@
 #!/bin/bash
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2026 Interpretica Unipessoal Lda
 RUNDIR="$(pwd -P)"
-export TS_TOPDIR="$(cd "$(dirname "$(which "$0")")"/.. ; pwd -P)"
+TS_TOPDIR="$(cd "$(dirname "$(which "$0")")"/.. && pwd -P)" || exit 1
+export TS_TOPDIR
 export TE_TS_TSF_SHELL=${TS_TOPDIR}/tsf-shell-ts
 
 function show_usage() {
@@ -16,7 +19,7 @@ function show_usage() {
 }
 
 function run_fail() {
-    echo "Error:" $@ >&2
+    echo "Error:" "$@" >&2
     exit 1
 }
 
@@ -45,7 +48,8 @@ if [ "$is_docker" == "1" ] ; then
     # container too. Without this the advice in external.yml is true
     # outside Docker and quietly false within it.
     export TE_DOCKER_MOUNT_PATHS="${TS_TOPDIR}:${TE_BASE}:${TS_TOPDIR}/.."
-    export TE_DOCKER_WORK_DIR="$(pwd)"
+    TE_DOCKER_WORK_DIR="$(pwd)"
+    export TE_DOCKER_WORK_DIR
     # git refuses to touch a repository whose directory belongs to
     # another user, and everything under a bind mount does: the
     # container runs as the host uid, the files carry whatever the
@@ -59,7 +63,18 @@ if [ "$is_docker" == "1" ] ; then
     export GIT_CONFIG_KEY_0="safe.directory"
     export GIT_CONFIG_VALUE_0="*"
     export TE_DOCKER_ENV="TE_BASE:TS_TOPDIR:GIT_CONFIG_COUNT:GIT_CONFIG_KEY_0:GIT_CONFIG_VALUE_0"
-    ${TS_TOPDIR}/scripts/docker_env.sh ${TS_TOPDIR}/scripts/run.sh $@
+    # A private repository in conf/external.yml needs credentials, and
+    # the container has none of the host's. With GH_TOKEN set, git in
+    # the container answers github.com's credential request from it.
+    # The token travels by name (docker -e GH_TOKEN), so it is in
+    # neither a command line nor a URL, and is never written to disk.
+    if [ -n "${GH_TOKEN:-}" ] ; then
+        export GIT_CONFIG_COUNT=2
+        export GIT_CONFIG_KEY_1="credential.https://github.com.helper"
+        export GIT_CONFIG_VALUE_1='!f() { test "$1" = get || exit 0; echo username=x-access-token; echo "password=${GH_TOKEN}"; }; f'
+        export TE_DOCKER_ENV="${TE_DOCKER_ENV}:GIT_CONFIG_KEY_1:GIT_CONFIG_VALUE_1:GH_TOKEN"
+    fi
+    "${TS_TOPDIR}/scripts/docker_env.sh" "${TS_TOPDIR}/scripts/run.sh" "$@"
     exit $?
 fi
 

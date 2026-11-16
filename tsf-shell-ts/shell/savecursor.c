@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: MIT */
+/* Copyright (C) 2026 Interpretica Unipessoal Lda */
 /** @file
  * @brief Shell Group
  *
@@ -5,8 +7,6 @@
  * cursor is parked, moved elsewhere to print, then restored to the
  * parked spot to print again. The two printed cells prove the cursor
  * went where DECRC said and not where the detour left it.
- *
- * Copyright (C) 2026 Interpretica Unipessoal Lda
  */
 
 #define TE_TEST_NAME    "shell/savecursor"
@@ -30,6 +30,7 @@ int
 main(int argc, char **argv)
 {
     tsapi_shell_sess   sess;
+    const char        *backend;
     tapi_shell_session sh;
     tapi_shell_status  status;
     te_mi_logger      *logger = NULL;
@@ -38,11 +39,12 @@ main(int argc, char **argv)
     tapi_shell_cell_t  c;
 
     TEST_START;
+    TEST_GET_STRING_PARAM(backend);
 
-    TEST_STEP("Open a session; skip when no backend");
+    TEST_STEP("Open a session; skip when the agent lacks the backend");
     CHECK_RC(tsapi_shell_sess_init(&sess, "pco_shell_savecursor"));
-    if (!tapi_shell_available(sess.pco))
-        TEST_SKIP("The agent has no terminal-emulator backend");
+    if (!tsapi_shell_sess_select(&sess, backend))
+        TEST_SKIP("The agent does not have this terminal-emulator backend");
 
     TEST_STEP("Park, detour to print, then restore and print");
     CHECK_RC(tsapi_shell_open_sh(&sess, SAVE_SCRIPT, 80, 24, &sh));

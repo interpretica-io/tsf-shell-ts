@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: MIT */
+/* Copyright (C) 2026 Interpretica Unipessoal Lda */
 /** @file
  * @brief Shell Group
  *
@@ -6,8 +8,6 @@
  * flags). A row with a coloured cell, a bold cell and a plain cell is
  * painted; the records are parsed and each cell's code point, colour
  * index and flags are asserted.
- *
- * Copyright (C) 2026 Interpretica Unipessoal Lda
  */
 
 #define TE_TEST_NAME    "shell/rowattrs"
@@ -35,6 +35,7 @@ int
 main(int argc, char **argv)
 {
     tsapi_shell_sess   sess;
+    const char        *backend;
     tapi_shell_session sh;
     tapi_shell_status  status;
     te_mi_logger      *logger = NULL;
@@ -51,13 +52,14 @@ main(int argc, char **argv)
     } cell[MAXW];
 
     TEST_START;
+    TEST_GET_STRING_PARAM(backend);
 
     memset(cell, 0, sizeof(cell));
 
-    TEST_STEP("Open a session; skip when no backend");
+    TEST_STEP("Open a session; skip when the agent lacks the backend");
     CHECK_RC(tsapi_shell_sess_init(&sess, "pco_shell_rowattrs"));
-    if (!tapi_shell_available(sess.pco))
-        TEST_SKIP("The agent has no terminal-emulator backend");
+    if (!tsapi_shell_sess_select(&sess, backend))
+        TEST_SKIP("The agent does not have this terminal-emulator backend");
 
     TEST_STEP("Paint a row with a coloured, a bold and a plain cell");
     CHECK_RC(tsapi_shell_open_sh(&sess, RA_SCRIPT, 80, 24, &sh));

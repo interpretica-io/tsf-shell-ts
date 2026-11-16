@@ -22,6 +22,7 @@ back correctly.
 | `edit` | in-line editing — insert-character (ICH) and delete-character (DCH) — rearranges a row, interior blanks and all |
 | `tabs` | horizontal tabs land on the default stops (every 8) and on a custom stop set with HTS after clearing all with TBC |
 | `wrap` | autowrap (DECAWM) carries a line past the last column onto the next row on a narrow screen |
+| `cbtwrap` | a back-tab (CBT) from the last column cancels the pending wrap, like cursor-left does |
 | `altscreen` | the alternate screen buffer (DECSET 1049) hides the primary content on enter and restores it exactly on leave |
 | `unicode` | UTF-8 is decoded to code points; a wide CJK glyph occupies two cells and is flagged wide, the next letter follows it |
 | `savecursor` | save-cursor / restore-cursor (DECSC/DECRC) park the cursor, detour to print, and restore to the parked cell |
@@ -30,18 +31,29 @@ back correctly.
 | `keys` | symbolic keys become the exact xterm byte sequences (arrows, Home, F1, Delete, PageUp, Alt-modified), read back in raw mode |
 | `signals` | a control key becomes a signal — Ctrl-C → SIGINT, Ctrl-`\` → SIGQUIT — terminating the foreground reader |
 | `scrollback` | lines scrolled off the top of the screen are kept in scrollback and found there, absent from the visible screen |
+| `deepscroll` | the scrollback keeps exactly the newest 2000 scrolled-off lines, in order and without gaps, for line counts below, at and above that limit |
 | `rowattrs` | a whole row's per-cell attribute records (column, code point, colours, indices, flags) are dumped and parsed |
 | `regex` | the expect primitive matches a POSIX extended regex on the stream, and reports `ETIMEDOUT` for a pattern that never arrives |
 | `multisession` | several terminal sessions live at once on one agent, each with its own screen, and do not bleed into one another |
+| `chunking` | a terminal looks the same whether its input arrives in one write or one byte at a time, over a set of state-setting sequences (pending wrap, margins, modes, cut escape sequences and UTF-8) |
+| `snapshot` | a terminal replaced by the one decoded from its own snapshot looks the same and renders the same further output, over the same set of sequences (libghostty-vt) |
 
-A terminal-emulator backend is **required**; a test skips
-(`tapi_shell_available()`) when none is linked into the agent, rather
-than failing. The Docker image installs **libvterm**, the fallback
-backend; the preferred libghostty-vt needs a Zig build and is not
-installed here. Numeric results are emitted as MI measurement artifacts,
-so the HTML log and Bublik draw them as graphs (characters per row,
-colour index per cell, echo round-trip latency, screen size across the
-resize, exit codes, golden cells matched).
+Every test takes the emulator as a parameter and runs once per backend,
+**libghostty-vt** and **libvterm**, so a difference between the two
+shows as a difference between two iterations of one test. A test skips
+when the agent lacks the backend of its iteration, rather than failing.
+The Docker image carries both: libvterm from the distribution, and
+libghostty-vt built from a pinned Ghostty commit with Zig and linked
+statically into the agent.
+
+`chunking` and `snapshot` drive the emulator itself: the session runs an
+idle program and the test feeds the bytes straight into the emulator
+(`tapi_shell_feed`), so nothing depends on the pty or on timing.
+
+Numeric results are emitted as MI measurement artifacts, so the HTML log
+and Bublik draw them as graphs (characters per row, colour index per
+cell, echo round-trip latency, screen size across the resize, exit
+codes, golden cells matched, lines differing between two terminals).
 
 ## Oracle
 
@@ -60,18 +72,84 @@ Needs Docker and `test-environment` as a sibling directory:
 
 ```bash
 git clone https://github.com/interpretica-io/test-environment ../test-environment
-./scripts/run.sh docker guess --cfg=localhost
+GH_TOKEN=$(gh auth token) ./scripts/run.sh docker guess --cfg=localhost
 ```
 
-The Docker image (`scripts/docker/build/Dockerfile`) carries the TE
-build dependencies and **libvterm-dev**, so the agent — the build
-container on the `localhost` configuration — has a backend to render
-with. Without Docker: `./scripts/run.sh guess --cfg=localhost` on a host
-that has the TE dependencies and `libvterm-dev`.
+tsf-shell is a private repository, so the Builder needs credentials to
+clone it: `GH_TOKEN` (any token that can read the repository) is handed
+to git inside the container by name and never appears in a command line
+or a URL. To build against a local checkout of tsf-shell instead, point
+its `url` in `conf/external.yml` at the checkout's path.
+`conf/builder.conf.lock` pins the tsf-shell commit the suite was last
+verified with; `--update-external` moves it on.
 
-Check results from the build directory: `cat log.txt` for per-iteration
-`PASSED`/`FAILED`, and `./scripts/html-log.sh` for the HTML report with
-the MI graphs.
+The Docker image (`scripts/docker/build/Dockerfile`) carries the TE
+build dependencies and both backends, so the agent — the build
+container on the `localhost` configuration — has them to render with.
+The first image build compiles libghostty-vt, which takes several
+minutes and needs network access; later builds reuse the cached layer.
+Without Docker: `./scripts/run.sh guess --cfg=localhost` on a host that
+has the TE dependencies and at least one backend installed where
+pkg-config finds it (`libghostty-vt-static`, `vterm`).
+
+## Reading the result
+
+A run ends with the Tester's summary. `run.sh` exits 0 whenever the run
+completes, whatever the tests did, so keep its output and let
+`scripts/check-run.sh` decide:
+
+```bash
+GH_TOKEN=$(gh auth token) ./scripts/run.sh docker guess --cfg=localhost 2>&1 | tee run.out
+scripts/check-run.sh run.out
+```
+
+It passes when every iteration passed or failed as `conf/trc.xml`
+expects — none unexpected, aborted, new or skipped unexpectedly. A full
+run is 123 iterations: 120 pass, and 3 fail as expected on known
+defects of the emulators:
+
+| Test | Backend | Known defect |
+|---|---|---|
+| `cbtwrap` | libghostty-vt | A back-tab (CBT) from the last column keeps the pending wrap: the next character lands one row below the cursor |
+| `snapshot`, `seq=cbt_pending` | libghostty-vt | The same defect seen through a snapshot: the snapshot drops the flag, so the restored terminal prints that character elsewhere |
+| `chunking`, `seq=split_utf8` | libvterm (0.1.4 in the image, also 0.3.3) | A UTF-8 character cut between two writes decodes as U+FFFD |
+
+Each entry carries the verdict that identifies the defect, so a
+different failure of the same test still shows as unexpected, and a fix
+shows as "passed unexpectedly" — then drop the entry. Per-iteration
+detail is in `log.txt`, and `./scripts/html-log.sh` gives the HTML
+report with the MI graphs.
+
+## Versions
+
+Everything the run depends on is pinned, so a run can be repeated:
+
+| What | Where |
+|---|---|
+| tsf-shell | `conf/builder.conf.lock` (the commit last verified; `--update-external` moves it on) |
+| Ghostty (libghostty-vt) | `GHOSTTY_REF` in `scripts/docker/build/Dockerfile` |
+| Zig | `ZIG_VERSION` and its published SHA-256 per architecture, same file |
+
+The image build checks the Zig archive against its checksum and the
+fetched Ghostty commit against `GHOSTTY_REF`. tsf-shell's own CI builds
+the same Ghostty commit (`ci/ghostty.env` there); move both together.
+
+## Development
+
+`scripts/lint.sh` runs the static checks: layout and licence headers,
+well-formed XML, shellcheck, actionlint, and `scripts/lint_suite.py`,
+which checks that the suite's descriptions of itself agree — every test
+C file is built by meson and run by `package.xml`; every run takes the
+`backend` argument; the `seq` values are the sequences in
+`lib/tsapi_shell.c`; every expected result in `conf/trc.xml` names a
+test, the arguments it is run with and a verdict its source can
+produce; and every test has a row in the table above.
+
+GitHub Actions (`.github/workflows/ci.yml`) runs the lint on every push
+and pull request, and the full Docker build and run on demand and
+weekly (Test Environment is taken from its main branch and moves on its
+own). The full run needs a token that can read tsf-shell in the
+`TSF_SHELL_TOKEN` repository secret; it keeps the logs as an artifact.
 
 ## Pointing it at a real host
 

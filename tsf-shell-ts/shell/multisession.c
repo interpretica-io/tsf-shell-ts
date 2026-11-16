@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: MIT */
+/* Copyright (C) 2026 Interpretica Unipessoal Lda */
 /** @file
  * @brief Shell Group
  *
@@ -5,8 +7,6 @@
  * own screen, and they do not bleed into one another. Four sessions are
  * opened, each painting a distinct marker; every session is then found
  * to show only its own marker and none of the others.
- *
- * Copyright (C) 2026 Interpretica Unipessoal Lda
  */
 
 #define TE_TEST_NAME    "shell/multisession"
@@ -28,6 +28,7 @@ int
 main(int argc, char **argv)
 {
     tsapi_shell_sess   sess;
+    const char        *backend;
     te_mi_logger      *logger = NULL;
     tapi_shell_session sh[NSESS];
     char               marker[NSESS][16];
@@ -35,11 +36,12 @@ main(int argc, char **argv)
     int                i, j;
 
     TEST_START;
+    TEST_GET_STRING_PARAM(backend);
 
-    TEST_STEP("Open a session; skip when no backend");
+    TEST_STEP("Open a session; skip when the agent lacks the backend");
     CHECK_RC(tsapi_shell_sess_init(&sess, "pco_shell_multi"));
-    if (!tapi_shell_available(sess.pco))
-        TEST_SKIP("The agent has no terminal-emulator backend");
+    if (!tsapi_shell_sess_select(&sess, backend))
+        TEST_SKIP("The agent does not have this terminal-emulator backend");
 
     TEST_STEP("Open four sessions, each painting its own marker");
     for (i = 0; i < NSESS; i++)

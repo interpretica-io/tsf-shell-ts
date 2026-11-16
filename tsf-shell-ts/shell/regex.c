@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: MIT */
+/* Copyright (C) 2026 Interpretica Unipessoal Lda */
 /** @file
  * @brief Shell Group
  *
@@ -5,8 +7,6 @@
  * the output stream, and reports a timeout when the pattern never
  * arrives. An interactive echo is driven: a regex matches its reply,
  * and a pattern that cannot appear times out with the expected error.
- *
- * Copyright (C) 2026 Interpretica Unipessoal Lda
  */
 
 #define TE_TEST_NAME    "shell/regex"
@@ -27,6 +27,7 @@ int
 main(int argc, char **argv)
 {
     tsapi_shell_sess   sess;
+    const char        *backend;
     tapi_shell_session sh;
     te_mi_logger      *logger = NULL;
     bool               opened = false;
@@ -34,11 +35,12 @@ main(int argc, char **argv)
     int                neg_err = 0;
 
     TEST_START;
+    TEST_GET_STRING_PARAM(backend);
 
-    TEST_STEP("Open a session; skip when no backend");
+    TEST_STEP("Open a session; skip when the agent lacks the backend");
     CHECK_RC(tsapi_shell_sess_init(&sess, "pco_shell_regex"));
-    if (!tapi_shell_available(sess.pco))
-        TEST_SKIP("The agent has no terminal-emulator backend");
+    if (!tsapi_shell_sess_select(&sess, backend))
+        TEST_SKIP("The agent does not have this terminal-emulator backend");
 
     TEST_STEP("Spawn an interactive echo");
     CHECK_RC(tsapi_shell_open_sh(&sess, REGEX_SCRIPT, 80, 24, &sh));

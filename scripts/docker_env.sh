@@ -1,4 +1,6 @@
 #!/bin/bash
+# SPDX-License-Identifier: MIT
+# Copyright (C) 2026 Interpretica Unipessoal Lda
 # Docker-based environment for Test Environment build & run
 TE_DOCKER_SOCK_DEFAULT="/var/run/docker.sock"
 docker_sock="${TE_DOCKER_SOCK:-${TE_DOCKER_SOCK_DEFAULT}}"
@@ -75,18 +77,18 @@ for env_var in "${ARRAY[@]}"; do
 done
 
 # Build docker image
-pushd "${TE_DOCKER_FILE_DIR}"
-docker build --platform linux/amd64 -t ${USER}/${TE_DOCKER_TAG} \
-       --build-arg user=${USER} \
-       --build-arg uid=$(id -u ${USER}) \
-       --build-arg gid=$(id -g ${USER}) \
-       --build-arg docker_gid=$(cut -d: -f3 <<< "${docker_group_id}") \
+pushd "${TE_DOCKER_FILE_DIR}" || exit 3
+docker build --platform linux/amd64 -t "${USER}/${TE_DOCKER_TAG}" \
+       --build-arg user="${USER}" \
+       --build-arg uid="$(id -u "${USER}")" \
+       --build-arg gid="$(id -g "${USER}")" \
+       --build-arg docker_gid="$(cut -d: -f3 <<< "${docker_group_id}")" \
        .
 if [ "$?" != "0" ] ; then
     echo "Error: failed to build container" 1>&2
     exit 3
 fi
-popd
+popd || exit 3
 
 # Forward the SSH agent when there is one: a CI job hands its git
 # credentials over as an agent socket (Jenkins sshagent does), and a
@@ -106,8 +108,8 @@ fi
 # Run docker image
 docker run --platform linux/amd64 --rm -i \
        --network host \
-       --user=$(id -u):$(id -g) \
-       --hostname=$(hostname)-te \
+       --user="$(id -u):$(id -g)" \
+       --hostname="$(hostname)-te" \
        --group-add docker \
        ${DOCKER_SOCK_GROUPS} \
        ${MOUNTS} \
@@ -116,4 +118,4 @@ docker run --platform linux/amd64 --rm -i \
        -v ~/.ssh:/home/${USER}/.ssh \
        ${SSH_AGENT_ARGS} \
        -v ${docker_sock}:${docker_sock} \
-       ${USER}/${TE_DOCKER_TAG} $@
+       "${USER}/${TE_DOCKER_TAG}" "$@"

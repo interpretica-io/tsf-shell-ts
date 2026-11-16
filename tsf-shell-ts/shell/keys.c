@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: MIT */
+/* Copyright (C) 2026 Interpretica Unipessoal Lda */
 /** @file
  * @brief Shell Group
  *
@@ -6,8 +8,6 @@
  * child is put in raw mode and dumps the exact bytes it receives; each
  * key (and an Alt-modified key) is sent and its byte sequence asserted
  * on the output stream.
- *
- * Copyright (C) 2026 Interpretica Unipessoal Lda
  */
 
 #define TE_TEST_NAME    "shell/keys"
@@ -24,6 +24,7 @@ int
 main(int argc, char **argv)
 {
     tsapi_shell_sess sess;
+    const char        *backend;
     te_mi_logger    *logger = NULL;
     unsigned int     i;
     static const struct {
@@ -48,11 +49,12 @@ main(int argc, char **argv)
     };
 
     TEST_START;
+    TEST_GET_STRING_PARAM(backend);
 
-    TEST_STEP("Open a session; skip when no backend");
+    TEST_STEP("Open a session; skip when the agent lacks the backend");
     CHECK_RC(tsapi_shell_sess_init(&sess, "pco_shell_keys"));
-    if (!tapi_shell_available(sess.pco))
-        TEST_SKIP("The agent has no terminal-emulator backend");
+    if (!tsapi_shell_sess_select(&sess, backend))
+        TEST_SKIP("The agent does not have this terminal-emulator backend");
 
     CHECK_RC(te_mi_logger_meas_create("tsf-shell", &logger));
 

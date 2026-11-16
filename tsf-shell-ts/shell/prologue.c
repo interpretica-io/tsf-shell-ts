@@ -1,6 +1,7 @@
+/* SPDX-License-Identifier: MIT */
+/* Copyright (C) 2026 Interpretica Unipessoal Lda */
 /** @file
  * @brief Shell Group
- * Copyright (C) 2026 Interpretica Unipessoal Lda
  */
 #define TE_TEST_NAME    "shell/prologue"
 #include "te_config.h"

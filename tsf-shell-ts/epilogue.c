@@ -1,9 +1,9 @@
+/* SPDX-License-Identifier: MIT */
+/* Copyright (C) 2025-2026 Interpretica Unipessoal Lda */
 /** @file
  * @brief Test Suite
  *
  * Test Suite epilogue.
- *
- * Copyright (C) 2025-2026 Interpretica Unipessoal Lda
  *
  * @author Maxim Menshikov <maxim.menshikov@interpretica.io>
  */

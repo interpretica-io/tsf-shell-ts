@@ -1,3 +1,86 @@
 <?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  Expected results. Every iteration not listed here is expected to pass
+  (unknown_exp_status="passed_ok"). The listed ones are known defects of
+  the emulators under test, each with the verdict that identifies it: a
+  run reports them as "failed, as expected" while the defect is there,
+  and as "passed unexpectedly" once it is fixed - then drop the entry.
+-->
 <trc_db unknown_exp_status="passed_ok">
+  <test name="tsf-shell-ts" type="package">
+    <objective>tsf-shell terminal-emulator test suite</objective>
+    <notes />
+    <iter result="PASSED">
+      <notes />
+      <test name="shell" type="package">
+        <objective>Terminal emulator</objective>
+        <notes />
+        <iter result="PASSED">
+          <notes />
+          <test name="cbtwrap" type="script">
+            <objective>A back-tab from the last column cancels the pending wrap.</objective>
+            <notes />
+            <iter result="FAILED">
+              <arg name="backend">ghostty</arg>
+              <notes>KNOWN DEFECT in libghostty-vt (found by this suite, not yet reported
+                       upstream). Cursor backward tab (CBT, CSI Z) moves the
+                       cursor off the last column without clearing the pending
+                       wrap (Terminal.horizontalTabBack uses the raw screen
+                       cursorLeft), unlike CUB, CR, CHA and BS. The next
+                       character then lands one row below the cursor. Ghostty
+                       itself treats a pending wrap away from the last column
+                       as invalid (its snapshot decoder drops it), so a
+                       restored snapshot renders the same output differently.</notes>
+              <results>
+                <result value="FAILED">
+                  <verdict>back-tab kept the pending wrap: the next character went to the row below the cursor</verdict>
+                </result>
+              </results>
+            </iter>
+          </test>
+          <test name="snapshot" type="script">
+            <objective>A terminal restored from its own snapshot behaves like the live one.</objective>
+            <notes />
+            <iter result="FAILED">
+              <arg name="backend">ghostty</arg>
+              <arg name="seq">cbt_pending</arg>
+              <notes>KNOWN DEFECT in libghostty-vt (found by this suite, not yet reported
+                       upstream). Cursor backward tab (CBT, CSI Z) moves the
+                       cursor off the last column without clearing the pending
+                       wrap (Terminal.horizontalTabBack uses the raw screen
+                       cursorLeft), unlike CUB, CR, CHA and BS. The next
+                       character then lands one row below the cursor. Ghostty
+                       itself treats a pending wrap away from the last column
+                       as invalid (its snapshot decoder drops it), so a
+                       restored snapshot renders the same output differently.</notes>
+              <results>
+                <result value="FAILED">
+                  <verdict>the restored terminal renders further output differently from the live one</verdict>
+                </result>
+              </results>
+            </iter>
+          </test>
+          <test name="chunking" type="script">
+            <objective>A terminal looks the same however its input is cut into writes.</objective>
+            <notes />
+            <iter result="FAILED">
+              <arg name="backend">vterm</arg>
+              <arg name="seq">split_utf8</arg>
+              <notes>KNOWN DEFECT in libvterm, the fallback backend: 0.1.4 (Debian 12, the image) and 0.3.3 (Ubuntu 24.04).
+                       A UTF-8 character cut between two writes after other
+                       text decodes as U+FFFD; the same bytes one at a time, or
+                       cut at the start of a line, decode correctly. Reproduced
+                       with libvterm alone (vterm_input_write), outside
+                       tsf-shell.</notes>
+              <results>
+                <result value="FAILED">
+                  <verdict>the terminal looks different when its input is fed one byte at a time</verdict>
+                </result>
+              </results>
+            </iter>
+          </test>
+        </iter>
+      </test>
+    </iter>
+  </test>
 </trc_db>

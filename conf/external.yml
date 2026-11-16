@@ -1,3 +1,10 @@
+# External repositories the suite builds on. The Builder clones each into
+# build/ext-repos/<name>; conf/builder.conf.lock pins the commit built.
+#
+# tsf-shell is a private repository: give the build credentials with
+# GH_TOKEN (see README). To build against a local checkout instead, point
+# url at its path - git clones a path as happily as a URL, and run.sh
+# mounts the parent directory into the Docker container.
 repositories:
   - name: tsf_shell
     url: https://github.com/interpretica-io/tsf-shell.git

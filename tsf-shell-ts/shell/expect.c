@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: MIT */
+/* Copyright (C) 2026 Interpretica Unipessoal Lda */
 /** @file
  * @brief Shell Group
  *
@@ -5,8 +7,6 @@
  * for on the output stream (classic expect), and the same text is then
  * found on the rendered screen with its cell coordinates. The
  * round-trip latency is charted over the payloads.
- *
- * Copyright (C) 2026 Interpretica Unipessoal Lda
  */
 
 #define TE_TEST_NAME    "shell/expect"
@@ -39,6 +39,7 @@ int
 main(int argc, char **argv)
 {
     tsapi_shell_sess   sess;
+    const char        *backend;
     tapi_shell_session sh;
     te_mi_logger      *logger = NULL;
     bool               opened = false;
@@ -46,11 +47,12 @@ main(int argc, char **argv)
     static const char * const payloads[] = { "alpha", "bravo", "charlie" };
 
     TEST_START;
+    TEST_GET_STRING_PARAM(backend);
 
-    TEST_STEP("Open a session; skip when no backend");
+    TEST_STEP("Open a session; skip when the agent lacks the backend");
     CHECK_RC(tsapi_shell_sess_init(&sess, "pco_shell_expect"));
-    if (!tapi_shell_available(sess.pco))
-        TEST_SKIP("The agent has no terminal-emulator backend");
+    if (!tsapi_shell_sess_select(&sess, backend))
+        TEST_SKIP("The agent does not have this terminal-emulator backend");
 
     TEST_STEP("Spawn an interactive echo shell");
     CHECK_RC(tsapi_shell_open_sh(&sess, ECHO_SCRIPT, 80, 24, &sh));
